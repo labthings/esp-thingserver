@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/labthings/arduino-labthings"
+    "url": "https://github.com/labthings/esp-labthings"
   },
   "license": "Mozilla Public License Version 2.0",
   "platforms": "espressif8266,espressif32",

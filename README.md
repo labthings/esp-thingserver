@@ -16,7 +16,7 @@ Add the `arduino-labthings` library through PlatformIO's package management inte
 ```ini
 [global]
 lib_deps =
-    https://github.com/labthings/arduino-labthings
+    https://github.com/labthings/esp-labthings
 
 ```
 
@@ -37,7 +37,7 @@ env_default= esp32
 
 [global]
 lib_deps =
-    https://github.com/labthings/arduino-labthings
+    https://github.com/labthings/esp-labthings
 monitor_speed = 115200
 
 [env:esp32]
@@ -69,7 +69,7 @@ env_default= ATmega2560
 
 [global]
 lib_deps =
-    https://github.com/labthings/arduino-labthings
+    https://github.com/labthings/esp-labthings
 monitor_speed = 115200
 
 [env:ATmega2560]
