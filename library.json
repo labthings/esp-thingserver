@@ -16,7 +16,7 @@
   "dependencies": {
     "ArduinoJson": "^6.15.0",
     "ESP Async WebServer": "^1.2.0",
-    "https://github.com/arduino-libraries/NTPClient": "^3.2.0"
+    "NTPClient": "^3.2.0"
   },
   "export": {
     "include": [
