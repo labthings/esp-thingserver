@@ -10,8 +10,6 @@
 
 #pragma once
 
-#include "EthernetTimeUtils.h"
-
 #if !defined(ESP32) && !defined(ESP8266)
 
 #include <Arduino.h>
