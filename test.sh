@@ -1,0 +1,1 @@
+for dir in examples/*; do platformio run --project-dir "$dir"; done
