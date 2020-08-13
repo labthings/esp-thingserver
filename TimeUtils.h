@@ -1,3 +1,5 @@
+#pragma once
+
 // If we don't have any WiFi-compatible board
 #if !defined(ESP32) && !defined(ESP8266)
 
