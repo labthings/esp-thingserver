@@ -1,11 +1,3 @@
-// If we don't have any WiFi-compatible board
-#if !defined(ESP32) && !defined(ESP8266)
-
-// TODO: Actually add an ethernet NTP client
-String getTimeStampString() { return "1970-01-01T00:00:00+00:00"; }
-
-// If we're good to use WiFi
-#else
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 
@@ -49,5 +41,3 @@ String getTimeStampString() {
   return yearStr + "-" + monthStr + "-" + dayStr + "T" + hoursStr + ":" +
          minuteStr + ":" + secondStr + "Z";
 }
-
-#endif

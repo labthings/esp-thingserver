@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "TimeUtils.h"
+#include "EthernetTimeUtils.h"
 
 #if !defined(ESP32) && !defined(ESP8266)
 
