@@ -14,8 +14,8 @@
 #define WM_ASYNC
 #include <AsyncWiFiManager.h>
 
-#include "Thing.h"
-#include "WebThingAdapter.h"
+#include <Thing.h>
+#include <WebThingAdapter.h>
 
 #if defined(LED_BUILTIN)
 const int ledPin = LED_BUILTIN;

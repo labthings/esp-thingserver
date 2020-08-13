@@ -62,7 +62,7 @@ monitor_speed =  ${global.monitor_speed}
 main.cpp
 ```c++
 #include <Arduino.h>
-#include "Thing.h"
+#include <Thing.h>
 #include "WebThingAdapter.h"
 
 // TODO: Hardcode your wifi credentials here (and keep it private)
