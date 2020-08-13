@@ -11,7 +11,7 @@
     "type": "git",
     "url": "https://github.com/labthings/esp-labthings"
   },
-  "license": "Mozilla Public License Version 2.0",
+  "license": "MPL-2.0",
   "platforms": "espressif8266,espressif32",
   "dependencies": {
     "ArduinoJson": "^6.15.0",
