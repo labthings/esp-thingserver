@@ -34,7 +34,6 @@
 #include <BME280I2C.h>
 #include <SPI.h>
 #include <Wire.h>
-#include <WiFi101.h>
 #include <Thing.h>
 #include <WebThingAdapter.h>
 

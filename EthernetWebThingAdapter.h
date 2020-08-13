@@ -16,20 +16,12 @@
 
 #include <Arduino.h>
 
-#if defined(STM32F7xx)
-#include <LwIP.h>
-#include <STM32Ethernet.h>
-#else
 #include <Ethernet.h>
 #include <EthernetClient.h>
 #include <EthernetServer.h>
-#define CONFIG_MDNS 1
-#endif
 
-#ifdef CONFIG_MDNS
 #include <EthernetUdp.h>
 #include <ArduinoMDNS.h>
-#endif
 
 #include <ArduinoJson.h>
 
@@ -77,12 +69,7 @@ class WebThingAdapter {
 public:
   WebThingAdapter(ThingDevice *_thing, String _name, uint32_t _ip,
                   uint16_t _port = 80)
-      : thing(_thing), name(_name), port(_port), server(_port)
-#ifdef CONFIG_MDNS
-        ,
-        mdns(udp)
-#endif
-  {
+      : thing(_thing), name(_name), port(_port), server(_port), mdns(udp) {
     ip = "";
     for (int i = 0; i < 4; i++) {
       ip += _ip & 0xff;
@@ -95,20 +82,16 @@ public:
 
   void begin() {
     name.toLowerCase();
-#ifdef CONFIG_MDNS
     String serviceName = name + "._labthing";
     mdns.begin(Ethernet.localIP(), name.c_str());
     // \x06 is the length of the record
     mdns.addServiceRecord(serviceName.c_str(), port, MDNSServiceTCP,
                           "\x06path=/");
-#endif
     server.begin();
   }
 
   void update() {
-#ifdef CONFIG_MDNS
     mdns.run();
-#endif
     if (!client) {
       EthernetClient client = server.available();
       if (!client) {
@@ -236,10 +219,8 @@ private:
   uint16_t port;
   EthernetServer server;
   EthernetClient client;
-#ifdef CONFIG_MDNS
   EthernetUDP udp;
   MDNS mdns;
-#endif
 
   ReadState state = STATE_READ_METHOD;
   String uri = "";
