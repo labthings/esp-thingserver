@@ -1,6 +1,6 @@
 {
-  "name": "arduino-labthings",
-  "description": "A library for creating Lab Things. Runs on ESP8266, ESP32, Ethernet, and WiFi101-compatible boards",
+  "name": "esp-labthings",
+  "description": "A library for creating Lab Things. Runs on ESP8266 and ESP32",
   "keywords": "Communication",
   "version": "0.11.5",
   "authors": {

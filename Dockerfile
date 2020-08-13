@@ -22,7 +22,7 @@ RUN echo "#log: Configuring locales" \
   && dpkg-reconfigure locales \
   && sync
 
-ENV project arduino-labthings
+ENV project esp-labthings
 
 RUN echo "#log: ${project}: Setup system" \
   && set -x \
