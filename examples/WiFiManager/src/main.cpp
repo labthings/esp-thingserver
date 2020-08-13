@@ -38,16 +38,15 @@ void setup(void) {
   WiFi.mode(WIFI_STA);
 
   AsyncWiFiManager awm;
-  //awm.resetSettings();
+  // awm.resetSettings();
   bool res;
   Serial.println("Running autoConnect");
-  res = awm.autoConnect("AutoConnectAP","password"); // password protected ap
+  res = awm.autoConnect("AutoConnectAP", "password"); // password protected ap
 
-  if(!res) {
-      Serial.println("Failed to connect");
-      ESP.restart();
-  } 
-  else {
+  if (!res) {
+    Serial.println("Failed to connect");
+    ESP.restart();
+  } else {
     digitalWrite(ledPin, HIGH); // active low led
 
     Serial.println("");
