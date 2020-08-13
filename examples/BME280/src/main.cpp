@@ -44,6 +44,12 @@
 #define PIN_STATE_LOW LOW
 #endif
 
+#if defined(LED_BUILTIN)
+const int ledPin = LED_BUILTIN;
+#else
+const int ledPin = 13; // manually configure LED pin
+#endif
+
 WebThingAdapter *adapter;
 
 const char *bme280Types[] = {"TemperatureSensor", nullptr};
@@ -90,7 +96,7 @@ void setup() {
   }
 
   // configure the LED pin for output mode
-  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(ledPin, OUTPUT);
 
   Wire.begin();
   while (!bme.begin()) {
@@ -112,14 +118,14 @@ void setup() {
     // wait while not connected
 
     // blink the led to show an unconnected status
-    digitalWrite(LED_BUILTIN, PIN_STATE_HIGH);
+    digitalWrite(ledPin, PIN_STATE_HIGH);
     delay(500);
-    digitalWrite(LED_BUILTIN, PIN_STATE_LOW);
+    digitalWrite(ledPin, PIN_STATE_LOW);
     delay(500);
   }
 
   // connected, make the LED stay on
-  digitalWrite(LED_BUILTIN, PIN_STATE_HIGH);
+  digitalWrite(ledPin, PIN_STATE_HIGH);
 
   weatherTemp.unit = "celsius";
   weather.addProperty(&weatherTemp);
