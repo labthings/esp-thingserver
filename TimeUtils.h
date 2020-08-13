@@ -1,5 +1,5 @@
 // If we don't have any WiFi-compatible board
-#if !defined(ESP32) && !defined(ESP8266) && !defined(SEEED_WIO_TERMINAL)
+#if !defined(ESP32) && !defined(ESP8266)
 
 // TODO: Actually add an ethernet NTP client
 String getTimeStampString() { return "1970-01-01T00:00:00+00:00"; }

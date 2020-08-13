@@ -12,9 +12,11 @@
     "url": "https://github.com/labthings/arduino-labthings"
   },
   "license": "Mozilla Public License Version 2.0",
-  "platforms": "espressif8266,espressif32,atmelavr,atmelsam",
+  "platforms": "espressif8266,espressif32",
   "dependencies": {
-    "ArduinoJson": "^6.15.0"
+    "ArduinoJson": "^6.15.0",
+    "ESP Async WebServer": "^1.2.0",
+    "https://github.com/arduino-libraries/NTPClient": "^3.2.0"
   },
   "export": {
     "include": [

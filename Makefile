@@ -60,15 +60,6 @@ ${ArduinoMDNS_dir}:
 	@mkdir -p ${@D}
 	git clone --depth 1 --recursive ${ArduinoMDNS_url} $@
 
-ArduinoWiFi101_url?=https://github.com/arduino-libraries/WiFi101
-ArduinoWiFi101_dir?=${extra_dir}/Arduino/libraries/WiFi101
-ArduinoWiFi101_version?=0.15.3
-arduino_lib_dirs+=${ArduinoWiFi101_dir}
-
-${ArduinoWiFi101_dir}:
-	@mkdir -p ${@D}
-	git clone --depth 1 --recursive --branch ${ArduinoWiFi101_version} ${ArduinoWiFi101_url} $@
-
 Adafruit_GFX_url?=https://github.com/adafruit/Adafruit-GFX-Library
 Adafruit_GFX_version?=1.5.6
 Adafruit_GFX_dir=${extra_dir}/Arduino/libraries/Adafruit_GFX
