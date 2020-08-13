@@ -27,10 +27,10 @@ and run `platformio run -e huzzah -t upload` to build and upload (replace `huzza
 
 See the `examples` folder for `platformio.ini` examples.
 
-## Supported boards
 
-### ESP8266 or ESP32 (Reccommended)
+## Example
 
+platformio.ini
 ```ini
 [platformio]
 env_default= esp32
@@ -59,33 +59,7 @@ lib_ldf_mode = deep+
 monitor_speed =  ${global.monitor_speed}
 ```
 
-### Ethernet board
-
-If you want to create an ethernet LabThing, for example an Arduino Mega with an ethernet shield, make sure to include both "Thing.h" and "EthernetWebThingAdapter.h". 
-
-```ini
-[platformio]
-env_default= ATmega2560
-
-[global]
-lib_deps =
-    https://github.com/labthings/esp-labthings
-monitor_speed = 115200
-
-[env:ATmega2560]
-platform = atmelavr
-board = ATmega2560
-framework = arduino
-lib_deps =
-    ${global.lib_deps}
-    ArduinoMDNS
-    Ethernet
-lib_ldf_mode = deep+
-monitor_speed =  ${global.monitor_speed}
-```
-
-## Example
-
+main.cpp
 ```c++
 #include <Arduino.h>
 #include "Thing.h"
