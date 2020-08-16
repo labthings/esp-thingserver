@@ -66,7 +66,7 @@ void setup(void) {
     weatherHum.readOnly = true;
     weather.addProperty(&weatherHum);
 
-    adapter = new WebThingAdapter(&weather, "w25", WiFi.localIP());
+    adapter = new WebThingAdapter(&weather, "AM2320", WiFi.localIP());
     adapter->begin();
     Serial.println("HTTP server started");
     Serial.print("http://");
