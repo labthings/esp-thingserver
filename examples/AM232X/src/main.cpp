@@ -62,7 +62,7 @@ void setup(void) {
     weatherTemp.unit = "celsius";
     weatherTemp.readOnly = true;
     weather.addProperty(&weatherTemp);
-    weatherTemp.unit = "percent";
+    weatherHum.unit = "percent";
     weatherHum.readOnly = true;
     weather.addProperty(&weatherHum);
 
