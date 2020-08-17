@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <AM232X.h>
 
+// Make sure we use an async web server for the WiFi manager
 #define WM_ASYNC
 #include <AsyncWiFiManager.h>
 
@@ -10,15 +11,20 @@
 AM232X AM2320;
 WebThingAdapter *adapter;
 
+// Define basic Thing attributes
 const char *am232Types[] = {"TemperatureSensor", "HumiditySensor", nullptr};
 ThingDevice weather("weather", "AM232X Weather Sensor", am232Types);
 ThingProperty weatherTemp("temperature", "", NUMBER, "TemperatureProperty");
 ThingProperty weatherHum("humidity", "", NUMBER, "HumidityProperty");
 
+// Value objects to hold our sensor data
 ThingPropertyValue temperatureValue;
 ThingPropertyValue humidityValue;
 
+// Define our functions
+
 void readAM232XData() {
+  // Read latest AM2320 and write them to our Thing properties
   if (AM2320.read() == AM232X_OK) {
     temperatureValue.number = AM2320.getTemperature();
     weatherTemp.setValue(temperatureValue);
@@ -29,13 +35,12 @@ void readAM232XData() {
 
 void setup(void) {
   Serial.begin(115200);
-  Serial.print("LIBRARY VERSION: ");
-  Serial.println(AM232X_LIB_VERSION);
 
+  // Create a WiFi station
   WiFi.mode(WIFI_STA);
 
+  // Start WiFi auto-connect routine
   AsyncWiFiManager awm;
-
   Serial.println("Running autoConnect");
 
   // Hack for https://github.com/tzapu/WiFiManager/issues/979
@@ -57,8 +62,10 @@ void setup(void) {
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
 
+    // Start I2C
     Wire.begin();
 
+    // Add Thing properties
     weatherTemp.unit = "celsius";
     weatherTemp.readOnly = true;
     weather.addProperty(&weatherTemp);
@@ -66,7 +73,9 @@ void setup(void) {
     weatherHum.readOnly = true;
     weather.addProperty(&weatherHum);
 
+    // Create our Thing adapter
     adapter = new WebThingAdapter(&weather, "AM2320", WiFi.localIP());
+    // Start the server
     adapter->begin();
     Serial.println("HTTP server started");
     Serial.print("http://");
@@ -75,7 +84,8 @@ void setup(void) {
 }
 
 void loop(void) {
-  // TODDO: Write this function
+  // Update sensor data
   readAM232XData();
+  // Update Thing adapter
   adapter->update();
 }
