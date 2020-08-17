@@ -13,7 +13,7 @@
 #define LARGE_JSON_BUFFERS 1
 
 #include <Arduino.h>
-#include <Adafruit_NeoPixel.h>
+#include <NeoPixelBus.h>
 
 // Make sure we use an async web server for the WiFi manager
 #define WM_ASYNC
@@ -26,8 +26,7 @@
 #define NUM_LEDS 32
 
 // Create NeoPixel strip object
-Adafruit_NeoPixel strip =
-    Adafruit_NeoPixel(NUM_LEDS, PIN, NEO_GRB + NEO_KHZ800);
+NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> strip(NUM_LEDS, PIN);
 
 WebThingAdapter *adapter;
 
@@ -71,10 +70,8 @@ void setup(void) {
     ESP.restart();
   } else {
     // Start NeoPixels
-    strip.begin();
-    // Hack for https://github.com/adafruit/Adafruit_NeoPixel/issues/139
-    delay(100); 
-    strip.show();
+    strip.Begin();
+    strip.Show();
 
     // Add Thing properties
     device.addProperty(&deviceOn);
@@ -111,13 +108,10 @@ void update(String *color, int const level) {
     sscanf(4 + hex, "%2x", &blue);
   }
 
-  strip.clear();
   for (int i = 0; i < NUM_LEDS; i++) {
-    strip.setPixelColor(i, strip.Color(red * dim, green * dim, blue * dim));
+    strip.SetPixelColor(i, RgbColor(red * dim, green * dim, blue * dim));
   }
-  // Hack for https://github.com/adafruit/Adafruit_NeoPixel/issues/139
-  delay(100); 
-  strip.show();
+  strip.Show();
 }
 
 void loop(void) {
@@ -125,6 +119,7 @@ void loop(void) {
 
   bool on = deviceOn.getValue().boolean;
   int level = deviceLevel.getValue().number;
+  update(&lastColor, on ? level : 0);
   
   if (on != lastOn) {
     Serial.print(device.id);
@@ -134,7 +129,6 @@ void loop(void) {
     Serial.print(level);
     Serial.print(", color: ");
     Serial.println(lastColor);
-    update(&lastColor, on ? level : 0);
   }
   lastOn = on;
 }
