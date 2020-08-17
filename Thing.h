@@ -501,8 +501,17 @@ public:
   ThingEvent *firstEvent = nullptr;
   ThingEventObject *eventQueue = nullptr;
 
+  DynamicJsonDocument contextDoc;
+  JsonArray contextArray;
+  JsonObject nestedContextObj;
+
   ThingDevice(const char *_id, const char *_title, const char **_type)
-      : id(_id), title(_title), type(_type) {}
+      : id(_id), title(_title), type(_type),
+        contextDoc(SMALL_JSON_DOCUMENT_SIZE) {
+    contextArray = contextDoc.to<JsonArray>();
+    contextArray.add("https://www.w3.org/2019/wot/td/v1");
+    nestedContextObj = contextArray.createNestedObject();
+  }
 
   ~ThingDevice() {
 #if !defined(WITHOUT_WS) && (defined(ESP8266) || defined(ESP32))
@@ -540,6 +549,16 @@ public:
     ((AsyncWebSocket *)ws)->textAll(jsonStr);
   }
 #endif
+
+  // Add a context member with a prefix
+  // E.g. device.addContext("https://w3id.org/saref#", "saref");
+  void addContext(String url, String prefix) {
+    nestedContextObj[prefix] = url;
+  }
+
+  // Add a context member without a prefix
+  // E.g. device.addContext("https://w3id.org/saref#");
+  void addContext(String url) { contextArray.add(url); }
 
   ThingProperty *findProperty(const char *id) {
     ThingProperty *p = this->firstProperty;
@@ -712,7 +731,7 @@ public:
   void serialize(JsonObject descr, String ip, uint16_t port) {
     descr["id"] = this->id;
     descr["title"] = this->title;
-    descr["@context"] = "https://iot.mozilla.org/schemas";
+    descr["@context"] = contextArray;
 
     if (this->description != "") {
       descr["description"] = this->description;
@@ -783,7 +802,6 @@ public:
       }
     }
 
-    // TODO: FIX THIS. Doesn't seem to be working.
     ThingAction *action = this->firstAction;
     if (action != nullptr) {
       JsonObject actions = descr.createNestedObject("actions");
@@ -794,7 +812,6 @@ public:
       }
     }
 
-    // TODO: FIX THIS. Doesn't seem to be working.
     ThingEvent *event = this->firstEvent;
     if (event != nullptr) {
       JsonObject events = descr.createNestedObject("events");
