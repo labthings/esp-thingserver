@@ -65,7 +65,7 @@ void setup(void) {
     // Start I2C
     Wire.begin();
 
-    // Add extra metadata to Thing properties
+    // Add Thing properties
     weatherTemp.unit = "celsius";
     weatherTemp.readOnly = true;
     weather.addProperty(&weatherTemp);
