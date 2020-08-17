@@ -73,6 +73,9 @@ void setup(void) {
     strip.Begin();
     strip.Show();
 
+    // Add extra device metadata
+    device.addContext("https://iot.mozilla.org/schemas/");
+
     // Add Thing properties
     device.addProperty(&deviceOn);
 
