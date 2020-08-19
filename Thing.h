@@ -229,6 +229,13 @@ public:
     this->hasChanged = true;
   }
 
+  void setValue(ThingDataValue newValues[], int n) {
+    this->values = newValues;
+    this->hasChanged = true;
+    this->isArray = true;
+    this->valuesLength = n;
+  }
+
   void setValue(const char *s) {
     *(this->getValue().string) = s;
     this->hasChanged = true;
@@ -244,7 +251,13 @@ public:
     return v;
   }
 
-  ThingDataValue getValue() { return this->value; }
+  ThingDataValue getValue() {
+    return this->value; 
+  }
+
+  ThingDataValue *getValues() {
+    return this->values;
+  }
 
   void serialize(JsonObject obj, String deviceId, String resourceType) {
     switch (type) {
@@ -262,6 +275,10 @@ public:
     case STRING:
       obj["type"] = "string";
       break;
+    }
+
+    if (this->isArray) {
+      obj["type"] = "array";
     }
 
     if (readOnly) {
@@ -305,46 +322,63 @@ public:
   }
 
   void serializeValueToObject(JsonObject prop) {
-    switch (this->type) {
-    case NO_STATE:
-      break;
-    case BOOLEAN:
-      prop[this->id] = this->getValue().boolean;
-      break;
-    case NUMBER:
-      prop[this->id] = this->getValue().number;
-      break;
-    case INTEGER:
-      prop[this->id] = this->getValue().integer;
-      break;
-    case STRING:
-      prop[this->id] = *this->getValue().string;
-      break;
-    }
+    DynamicJsonDocument doc(SMALL_JSON_DOCUMENT_SIZE);
+    JsonVariant variant = doc.to<JsonVariant>();
+    this->serializeValueToVariant(variant);
+    prop[this->id] = variant;
   }
 
   void serializeValueToVariant(JsonVariant variant) {
-    switch (this->type) {
-    case NO_STATE:
-      break;
-    case BOOLEAN:
-      variant.set(this->getValue().boolean);
-      break;
-    case NUMBER:
-      variant.set(this->getValue().number);
-      break;
-    case INTEGER:
-      variant.set(this->getValue().integer);
-      break;
-    case STRING:
-      variant.set(*this->getValue().string);
-      break;
+    if (this->isArray) {
+      JsonArray variantArray = variant.to<JsonArray>();
+      ThingDataValue *valueArray = this->getValues();
+
+      for( unsigned int a = 0; a < this->valuesLength; a++ ) {
+        ThingDataValue dataValue = valueArray[a];
+        switch (this->type) {
+        case NO_STATE:
+          break;
+        case BOOLEAN:
+          variantArray.add(dataValue.boolean);
+          break;
+        case NUMBER:
+          variantArray.add(dataValue.number);
+          break;
+        case INTEGER:
+          variantArray.add(dataValue.integer);
+          break;
+        case STRING:
+          variantArray.add(*dataValue.string);
+          break;
+        }
+      }
+    }
+    else {
+      switch (this->type) {
+      case NO_STATE:
+        break;
+      case BOOLEAN:
+        variant.set(this->getValue().boolean);
+        break;
+      case NUMBER:
+        variant.set(this->getValue().number);
+        break;
+      case INTEGER:
+        variant.set(this->getValue().integer);
+        break;
+      case STRING:
+        variant.set(*this->getValue().string);
+        break;
+      }
     }
   }
 
 private:
   ThingDataValue value = {false};
+  ThingDataValue *values;
+  int valuesLength = 0;
   bool hasChanged = false;
+  bool isArray = false;
 };
 
 class ThingProperty : public ThingItem {

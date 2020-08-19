@@ -41,6 +41,9 @@ ThingProperty deviceLevel("level", "The level of light from 0-100", NUMBER,
 ThingProperty deviceColor("color", "The color of light in RGB", STRING,
                           "ColorProperty");
 
+ThingProperty deviceArray("array", "Some array", INTEGER, nullptr);
+ThingPropertyValue arrayValues[3];
+
 bool lastOn = false;
 String lastColor = "#ff00ff";
 
@@ -88,6 +91,18 @@ void setup(void) {
     colorValue.string = &lastColor; // default color is white
     deviceColor.setValue(colorValue);
     device.addProperty(&deviceColor);
+
+    arrayValues[0].integer = 255;
+    arrayValues[1].integer = 0;
+    arrayValues[1].integer = 0;
+    deviceArray.setValue(arrayValues, 3);
+    device.addProperty(&deviceArray);
+
+    // TEST CODE
+    ThingDataValue *valueArray = deviceArray.getValues();
+    Serial.println((int) valueArray[0].integer);
+    Serial.println((int) deviceArray.getValues()[1].integer);
+    //Serial.println((int) deviceArray.getValues()[0].integer);
 
     // Create our Thing adapter
     adapter = new WebThingAdapter(&device, "NeoPixel Lamp", WiFi.localIP());
