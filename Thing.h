@@ -225,11 +225,13 @@ public:
       : id(id_), description(description_), type(type_), atType(atType_) {}
 
   void setValue(ThingDataValue newValue) {
+    // Set the items value to a ThingDataValue instance
     this->value = newValue;
     this->hasChanged = true;
   }
 
   void setValueArray(ThingDataValue newValues[], int n) {
+    // Set the items values to an array of ThingDataValue instances
     this->values = newValues;
     this->hasChanged = true;
     this->_isArray = true;
@@ -237,17 +239,20 @@ public:
   }
 
   void setValue(unsigned int index, ThingDataValue newValue) {
+    // Set an element of the items values array to a ThingDataValue instance
     if (this->isArray() && index < this->arrayLength()) {
       this->values[index] = newValue;
     }
   }
 
   void setValue(const char *s) {
+    // Set the items value to a string
     *(this->getValue().string) = s;
     this->hasChanged = true;
   }
 
   void setValue(unsigned int index, const char *s) {
+    // Set an element of the items values array to a string
     if (this->isArray() && index < this->arrayLength()) {
       *(this->values[index].string) = s;
       this->hasChanged = true;
@@ -328,7 +333,6 @@ public:
       break;
     }
 
-
     if (unit != "") {
       obj["unit"] = unit;
     }
@@ -345,8 +349,6 @@ public:
     if (multipleOf > 0) {
       obj["multipleOf"] = multipleOf;
     }
-
-
 
     // 2.9 Property object: A links array (An array of Link objects linking
     // to one or more representations of a Property resource, each with an
