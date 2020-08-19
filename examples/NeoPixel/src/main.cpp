@@ -38,10 +38,8 @@ ThingProperty deviceOn("on", "Whether the led is turned on", BOOLEAN,
                        "OnOffProperty");
 ThingProperty deviceLevel("level", "The level of light from 0-100", NUMBER,
                           "BrightnessProperty");
-ThingProperty deviceColor("color", "The color of light in RGB", STRING,
-                          "ColorProperty");
 
-ThingProperty deviceArray("array", "Some array", INTEGER, nullptr);
+ThingProperty deviceRGB("rgb", "The color of light in RGB", INTEGER, "ColorProperty");
 // Declare our array of values globally, so the pointer stays valid
 ThingPropertyValue arrayValues[3];
 
@@ -88,22 +86,13 @@ void setup(void) {
     deviceLevel.setValue(levelValue);
     device.addProperty(&deviceLevel);
 
-    ThingPropertyValue colorValue;
-    colorValue.string = &lastColor; // default color is white
-    deviceColor.setValue(colorValue);
-    device.addProperty(&deviceColor);
-
     arrayValues[0].integer = 0;
     arrayValues[1].integer = 50;
     arrayValues[2].integer = 50;
-    deviceArray.setValueArray(arrayValues, 3);
-    device.addProperty(&deviceArray);
-
-    // TEST CODE
-    ThingDataValue *valueArray = deviceArray.getValues();
-    Serial.println((int) valueArray[0].integer);
-    Serial.println((int) deviceArray.getValues()[1].integer);
-    //Serial.println((int) deviceArray.getValues()[0].integer);
+    deviceRGB.setValueArray(arrayValues, 3);
+    deviceRGB.minimum = 0;
+    deviceRGB.maximum = 255;
+    device.addProperty(&deviceRGB);
 
     // Create our Thing adapter
     adapter = new WebThingAdapter(&device, "NeoPixel Lamp", WiFi.localIP());
@@ -115,17 +104,8 @@ void setup(void) {
   }
 }
 
-void update(String *color, int const level) {
-  if (!color)
-    return;
+void update(int red, int green, int blue, int const level) {
   float dim = level / 100.;
-  int red, green, blue;
-  if (color && (color->length() == 7) && color->charAt(0) == '#') {
-    const char *hex = 1 + (color->c_str()); // skip leading '#'
-    sscanf(0 + hex, "%2x", &red);
-    sscanf(2 + hex, "%2x", &green);
-    sscanf(4 + hex, "%2x", &blue);
-  }
 
   for (int i = 0; i < NUM_LEDS; i++) {
     strip.SetPixelColor(i, RgbColor(red * dim, green * dim, blue * dim));
@@ -138,7 +118,11 @@ void loop(void) {
 
   bool on = deviceOn.getValue().boolean;
   int level = deviceLevel.getValue().number;
-  update(&lastColor, on ? level : 0);
+
+  int r = deviceRGB.getValues()[0].integer;
+  int g = deviceRGB.getValues()[1].integer;
+  int b = deviceRGB.getValues()[2].integer;
+  update(r, g, b, on ? level : 0);
   
   if (on != lastOn) {
     Serial.print(device.id);
