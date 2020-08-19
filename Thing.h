@@ -229,9 +229,29 @@ public:
     this->hasChanged = true;
   }
 
+  void setValueArray(ThingDataValue newValues[], int n) {
+    this->values = newValues;
+    this->hasChanged = true;
+    this->_isArray = true;
+    this->_arrayLength = n;
+  }
+
+  void setValue(unsigned int index, ThingDataValue newValue) {
+    if (this->isArray() && index < this->arrayLength()) {
+      this->values[index] = newValue;
+    }
+  }
+
   void setValue(const char *s) {
     *(this->getValue().string) = s;
     this->hasChanged = true;
+  }
+
+  void setValue(unsigned int index, const char *s) {
+    if (this->isArray() && index < this->arrayLength()) {
+      *(this->values[index].string) = s;
+      this->hasChanged = true;
+    }
   }
 
   /**
@@ -244,9 +264,53 @@ public:
     return v;
   }
 
-  ThingDataValue getValue() { return this->value; }
+  ThingDataValue getValue() {
+    return this->value; 
+  }
 
-  void serialize(JsonObject obj, String deviceId, String resourceType) {
+  ThingDataValue *getValues() {
+    return this->values;
+  }
+
+  bool isArray() {
+    return this->_isArray;
+  }
+
+  int arrayLength() {
+    return this->_arrayLength;
+  }
+
+  void serialize(JsonObject rootObj, String deviceId, String resourceType) {
+    JsonObject obj;
+
+    if (this->isArray()) {
+      obj["type"] = "array";
+      obj = rootObj.createNestedObject("items");
+    }
+    else {
+      obj = rootObj;
+    }
+
+    if (this->isArray()) {
+      rootObj["type"] = "array";
+    }
+
+    if (readOnly) {
+      rootObj["readOnly"] = true;
+    }
+
+    if (title != "") {
+      rootObj["title"] = title;
+    }
+
+    if (description != "") {
+      rootObj["description"] = description;
+    }
+
+    if (atType != nullptr) {
+      rootObj["@type"] = atType;
+    }
+
     switch (type) {
     case NO_STATE:
       break;
@@ -264,21 +328,11 @@ public:
       break;
     }
 
-    if (readOnly) {
-      obj["readOnly"] = true;
-    }
 
     if (unit != "") {
       obj["unit"] = unit;
     }
 
-    if (title != "") {
-      obj["title"] = title;
-    }
-
-    if (description != "") {
-      obj["description"] = description;
-    }
 
     if (minimum < maximum) {
       obj["minimum"] = minimum;
@@ -292,9 +346,7 @@ public:
       obj["multipleOf"] = multipleOf;
     }
 
-    if (atType != nullptr) {
-      obj["@type"] = atType;
-    }
+
 
     // 2.9 Property object: A links array (An array of Link objects linking
     // to one or more representations of a Property resource, each with an
@@ -305,45 +357,62 @@ public:
   }
 
   void serializeValueToObject(JsonObject prop) {
-    switch (this->type) {
-    case NO_STATE:
-      break;
-    case BOOLEAN:
-      prop[this->id] = this->getValue().boolean;
-      break;
-    case NUMBER:
-      prop[this->id] = this->getValue().number;
-      break;
-    case INTEGER:
-      prop[this->id] = this->getValue().integer;
-      break;
-    case STRING:
-      prop[this->id] = *this->getValue().string;
-      break;
-    }
+    DynamicJsonDocument doc(SMALL_JSON_DOCUMENT_SIZE);
+    JsonVariant variant = doc.to<JsonVariant>();
+    this->serializeValueToVariant(variant);
+    prop[this->id] = variant;
   }
 
   void serializeValueToVariant(JsonVariant variant) {
-    switch (this->type) {
-    case NO_STATE:
-      break;
-    case BOOLEAN:
-      variant.set(this->getValue().boolean);
-      break;
-    case NUMBER:
-      variant.set(this->getValue().number);
-      break;
-    case INTEGER:
-      variant.set(this->getValue().integer);
-      break;
-    case STRING:
-      variant.set(*this->getValue().string);
-      break;
+    if (this->isArray()) {
+      JsonArray variantArray = variant.to<JsonArray>();
+      ThingDataValue *valueArray = this->getValues();
+
+      for( unsigned int a = 0; a < this->arrayLength(); a++ ) {
+        ThingDataValue dataValue = valueArray[a];
+        switch (this->type) {
+        case NO_STATE:
+          break;
+        case BOOLEAN:
+          variantArray.add(dataValue.boolean);
+          break;
+        case NUMBER:
+          variantArray.add(dataValue.number);
+          break;
+        case INTEGER:
+          variantArray.add(dataValue.integer);
+          break;
+        case STRING:
+          variantArray.add(*dataValue.string);
+          break;
+        }
+      }
+    }
+    else {
+      switch (this->type) {
+      case NO_STATE:
+        break;
+      case BOOLEAN:
+        variant.set(this->getValue().boolean);
+        break;
+      case NUMBER:
+        variant.set(this->getValue().number);
+        break;
+      case INTEGER:
+        variant.set(this->getValue().integer);
+        break;
+      case STRING:
+        variant.set(*this->getValue().string);
+        break;
+      }
     }
   }
 
 private:
   ThingDataValue value = {false};
+  ThingDataValue *values;
+  bool _isArray = false;
+  int _arrayLength = 0;
   bool hasChanged = false;
 };
 
@@ -618,39 +687,93 @@ public:
   void setProperty(const char *name, const JsonVariant &newValue) {
     ThingProperty *property = findProperty(name);
 
+    // If the property doesn't exist, return immediately
     if (property == nullptr) {
       return;
     }
 
-    switch (property->type) {
-    case NO_STATE: {
-      break;
+    // If the property is an array
+    if (property->isArray()) {
+      // If the property is an array but the input JSON isn't
+      if (!newValue.is<JsonArray>()) {
+        // Return immediately
+        return;
+      }
+
+      // Create a JSON array from the input variant
+      JsonArray variantArray = newValue.as<JsonArray>();
+      // If input and property arrays are different lengths
+      if (variantArray.size() != property->arrayLength()) {
+        // Return immediately
+        return;
+      }
+      // For each element in the property array
+      for( unsigned int a = 0; a < property->arrayLength(); a++ ) {
+        switch (property->type) {
+        case NO_STATE: {
+          break;
+        }
+        case BOOLEAN: {
+          ThingDataValue value;
+          value.boolean = variantArray[a].as<bool>();
+          property->setValue(a, value);
+          property->changed(value);
+          break;
+        }
+        case NUMBER: {
+          ThingDataValue value;
+          value.number = variantArray[a].as<double>();
+          property->setValue(a, value);
+          property->changed(value);
+          break;
+        }
+        case INTEGER: {
+          ThingDataValue value;
+          value.integer = variantArray[a].as<signed long long>();
+          property->setValue(a, value);
+          property->changed(value);
+          break;
+        }
+        case STRING:
+          property->setValue(a, variantArray[a].as<const char *>());
+          property->changed(property->getValue());
+          break;
+        }
+      }
     }
-    case BOOLEAN: {
-      ThingDataValue value;
-      value.boolean = newValue.as<bool>();
-      property->setValue(value);
-      property->changed(value);
-      break;
-    }
-    case NUMBER: {
-      ThingDataValue value;
-      value.number = newValue.as<double>();
-      property->setValue(value);
-      property->changed(value);
-      break;
-    }
-    case INTEGER: {
-      ThingDataValue value;
-      value.integer = newValue.as<signed long long>();
-      property->setValue(value);
-      property->changed(value);
-      break;
-    }
-    case STRING:
-      property->setValue(newValue.as<const char *>());
-      property->changed(property->getValue());
-      break;
+
+    // Is the property is a single value
+    else {
+      switch (property->type) {
+      case NO_STATE: {
+        break;
+      }
+      case BOOLEAN: {
+        ThingDataValue value;
+        value.boolean = newValue.as<bool>();
+        property->setValue(value);
+        property->changed(value);
+        break;
+      }
+      case NUMBER: {
+        ThingDataValue value;
+        value.number = newValue.as<double>();
+        property->setValue(value);
+        property->changed(value);
+        break;
+      }
+      case INTEGER: {
+        ThingDataValue value;
+        value.integer = newValue.as<signed long long>();
+        property->setValue(value);
+        property->changed(value);
+        break;
+      }
+      case STRING:
+        property->setValue(newValue.as<const char *>());
+        property->changed(property->getValue());
+        break;
+      }
     }
   }
 
