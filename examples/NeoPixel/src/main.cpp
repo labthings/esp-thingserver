@@ -42,6 +42,7 @@ ThingProperty deviceColor("color", "The color of light in RGB", STRING,
                           "ColorProperty");
 
 ThingProperty deviceArray("array", "Some array", INTEGER, nullptr);
+// Declare our array of values globally, so the pointer stays valid
 ThingPropertyValue arrayValues[3];
 
 bool lastOn = false;
@@ -92,9 +93,9 @@ void setup(void) {
     deviceColor.setValue(colorValue);
     device.addProperty(&deviceColor);
 
-    arrayValues[0].integer = 255;
-    arrayValues[1].integer = 0;
-    arrayValues[1].integer = 0;
+    arrayValues[0].integer = 0;
+    arrayValues[1].integer = 50;
+    arrayValues[2].integer = 50;
     deviceArray.setValueArray(arrayValues, 3);
     device.addProperty(&deviceArray);
 
