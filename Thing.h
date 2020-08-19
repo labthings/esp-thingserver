@@ -280,7 +280,37 @@ public:
     return this->_arrayLength;
   }
 
-  void serialize(JsonObject obj, String deviceId, String resourceType) {
+  void serialize(JsonObject rootObj, String deviceId, String resourceType) {
+    JsonObject obj;
+
+    if (this->isArray()) {
+      obj["type"] = "array";
+      obj = rootObj.createNestedObject("items");
+    }
+    else {
+      obj = rootObj;
+    }
+
+    if (this->isArray()) {
+      rootObj["type"] = "array";
+    }
+
+    if (readOnly) {
+      rootObj["readOnly"] = true;
+    }
+
+    if (title != "") {
+      rootObj["title"] = title;
+    }
+
+    if (description != "") {
+      rootObj["description"] = description;
+    }
+
+    if (atType != nullptr) {
+      rootObj["@type"] = atType;
+    }
+
     switch (type) {
     case NO_STATE:
       break;
@@ -298,25 +328,11 @@ public:
       break;
     }
 
-    if (this->isArray()) {
-      obj["type"] = "array";
-    }
-
-    if (readOnly) {
-      obj["readOnly"] = true;
-    }
 
     if (unit != "") {
       obj["unit"] = unit;
     }
 
-    if (title != "") {
-      obj["title"] = title;
-    }
-
-    if (description != "") {
-      obj["description"] = description;
-    }
 
     if (minimum < maximum) {
       obj["minimum"] = minimum;
@@ -330,9 +346,7 @@ public:
       obj["multipleOf"] = multipleOf;
     }
 
-    if (atType != nullptr) {
-      obj["@type"] = atType;
-    }
+
 
     // 2.9 Property object: A links array (An array of Link objects linking
     // to one or more representations of a Property resource, each with an
@@ -680,7 +694,6 @@ public:
 
     // If the property is an array
     if (property->isArray()) {
-      Serial.println("Property is an array");
       // If the property is an array but the input JSON isn't
       if (!newValue.is<JsonArray>()) {
         // Return immediately
@@ -695,11 +708,7 @@ public:
         return;
       }
       // For each element in the property array
-      Serial.println("Input is an array");
       for( unsigned int a = 0; a < property->arrayLength(); a++ ) {
-        Serial.print("Operating on element: ");
-        Serial.print(a);
-        Serial.println("");
         switch (property->type) {
         case NO_STATE: {
           break;
