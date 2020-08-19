@@ -229,16 +229,29 @@ public:
     this->hasChanged = true;
   }
 
-  void setValue(ThingDataValue newValues[], int n) {
+  void setValueArray(ThingDataValue newValues[], int n) {
     this->values = newValues;
     this->hasChanged = true;
-    this->isArray = true;
-    this->valuesLength = n;
+    this->_isArray = true;
+    this->_arrayLength = n;
+  }
+
+  void setValue(unsigned int index, ThingDataValue newValue) {
+    if (this->isArray() && index < this->arrayLength()) {
+      this->values[index] = newValue;
+    }
   }
 
   void setValue(const char *s) {
     *(this->getValue().string) = s;
     this->hasChanged = true;
+  }
+
+  void setValue(unsigned int index, const char *s) {
+    if (this->isArray() && index < this->arrayLength()) {
+      *(this->values[index].string) = s;
+      this->hasChanged = true;
+    }
   }
 
   /**
@@ -259,6 +272,14 @@ public:
     return this->values;
   }
 
+  bool isArray() {
+    return this->_isArray;
+  }
+
+  int arrayLength() {
+    return this->_arrayLength;
+  }
+
   void serialize(JsonObject obj, String deviceId, String resourceType) {
     switch (type) {
     case NO_STATE:
@@ -277,7 +298,7 @@ public:
       break;
     }
 
-    if (this->isArray) {
+    if (this->isArray()) {
       obj["type"] = "array";
     }
 
@@ -329,11 +350,11 @@ public:
   }
 
   void serializeValueToVariant(JsonVariant variant) {
-    if (this->isArray) {
+    if (this->isArray()) {
       JsonArray variantArray = variant.to<JsonArray>();
       ThingDataValue *valueArray = this->getValues();
 
-      for( unsigned int a = 0; a < this->valuesLength; a++ ) {
+      for( unsigned int a = 0; a < this->arrayLength(); a++ ) {
         ThingDataValue dataValue = valueArray[a];
         switch (this->type) {
         case NO_STATE:
@@ -376,9 +397,9 @@ public:
 private:
   ThingDataValue value = {false};
   ThingDataValue *values;
-  int valuesLength = 0;
+  bool _isArray = false;
+  int _arrayLength = 0;
   bool hasChanged = false;
-  bool isArray = false;
 };
 
 class ThingProperty : public ThingItem {
@@ -652,39 +673,98 @@ public:
   void setProperty(const char *name, const JsonVariant &newValue) {
     ThingProperty *property = findProperty(name);
 
+    // If the property doesn't exist, return immediately
     if (property == nullptr) {
       return;
     }
 
-    switch (property->type) {
-    case NO_STATE: {
-      break;
+    // If the property is an array
+    if (property->isArray()) {
+      Serial.println("Property is an array");
+      // If the property is an array but the input JSON isn't
+      if (!newValue.is<JsonArray>()) {
+        // Return immediately
+        return;
+      }
+
+      // Create a JSON array from the input variant
+      JsonArray variantArray = newValue.as<JsonArray>();
+      // If input and property arrays are different lengths
+      if (variantArray.size() != property->arrayLength()) {
+        // Return immediately
+        return;
+      }
+      // For each element in the property array
+      Serial.println("Input is an array");
+      for( unsigned int a = 0; a < property->arrayLength(); a++ ) {
+        Serial.print("Operating on element: ");
+        Serial.print(a);
+        Serial.println("");
+        switch (property->type) {
+        case NO_STATE: {
+          break;
+        }
+        case BOOLEAN: {
+          ThingDataValue value;
+          value.boolean = variantArray[a].as<bool>();
+          property->setValue(a, value);
+          property->changed(value);
+          break;
+        }
+        case NUMBER: {
+          ThingDataValue value;
+          value.number = variantArray[a].as<double>();
+          property->setValue(a, value);
+          property->changed(value);
+          break;
+        }
+        case INTEGER: {
+          ThingDataValue value;
+          value.integer = variantArray[a].as<signed long long>();
+          property->setValue(a, value);
+          property->changed(value);
+          break;
+        }
+        case STRING:
+          property->setValue(a, variantArray[a].as<const char *>());
+          property->changed(property->getValue());
+          break;
+        }
+      }
     }
-    case BOOLEAN: {
-      ThingDataValue value;
-      value.boolean = newValue.as<bool>();
-      property->setValue(value);
-      property->changed(value);
-      break;
-    }
-    case NUMBER: {
-      ThingDataValue value;
-      value.number = newValue.as<double>();
-      property->setValue(value);
-      property->changed(value);
-      break;
-    }
-    case INTEGER: {
-      ThingDataValue value;
-      value.integer = newValue.as<signed long long>();
-      property->setValue(value);
-      property->changed(value);
-      break;
-    }
-    case STRING:
-      property->setValue(newValue.as<const char *>());
-      property->changed(property->getValue());
-      break;
+
+    // Is the property is a single value
+    else {
+      switch (property->type) {
+      case NO_STATE: {
+        break;
+      }
+      case BOOLEAN: {
+        ThingDataValue value;
+        value.boolean = newValue.as<bool>();
+        property->setValue(value);
+        property->changed(value);
+        break;
+      }
+      case NUMBER: {
+        ThingDataValue value;
+        value.number = newValue.as<double>();
+        property->setValue(value);
+        property->changed(value);
+        break;
+      }
+      case INTEGER: {
+        ThingDataValue value;
+        value.integer = newValue.as<signed long long>();
+        property->setValue(value);
+        property->changed(value);
+        break;
+      }
+      case STRING:
+        property->setValue(newValue.as<const char *>());
+        property->changed(property->getValue());
+        break;
+      }
     }
   }
 

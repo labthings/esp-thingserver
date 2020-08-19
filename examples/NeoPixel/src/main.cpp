@@ -95,7 +95,7 @@ void setup(void) {
     arrayValues[0].integer = 255;
     arrayValues[1].integer = 0;
     arrayValues[1].integer = 0;
-    deviceArray.setValue(arrayValues, 3);
+    deviceArray.setValueArray(arrayValues, 3);
     device.addProperty(&deviceArray);
 
     // TEST CODE
