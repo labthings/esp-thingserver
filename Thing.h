@@ -99,49 +99,19 @@ public:
   ThingAction *next = nullptr;
 
   ThingAction(const char *id_,
-              ThingActionObject *(*generator_fn_)(DynamicJsonDocument *))
-      : generator_fn(generator_fn_), id(id_) {}
+              ThingActionObject *(*generator_fn_)(DynamicJsonDocument *));
 
   ThingAction(const char *id_, JsonObject *input_,
-              ThingActionObject *(*generator_fn_)(DynamicJsonDocument *))
-      : generator_fn(generator_fn_), id(id_), input(input_) {}
+              ThingActionObject *(*generator_fn_)(DynamicJsonDocument *));
 
   ThingAction(const char *id_, const char *title_, const char *description_,
               const char *type_, JsonObject *input_,
-              ThingActionObject *(*generator_fn_)(DynamicJsonDocument *))
-      : generator_fn(generator_fn_), id(id_), title(title_),
-        description(description_), type(type_), input(input_) {}
+              ThingActionObject *(*generator_fn_)(DynamicJsonDocument *));
+
+  void serialize(JsonObject obj, String deviceId, String resourceType);
 
   ThingActionObject *create(DynamicJsonDocument *actionRequest) {
     return generator_fn(actionRequest);
-  }
-
-  void serialize(JsonObject obj, String deviceId, String resourceType) {
-    if (title != "") {
-      obj["title"] = title;
-    }
-
-    if (description != "") {
-      obj["description"] = description;
-    }
-
-    if (type != "") {
-      obj["@type"] = type;
-    }
-
-    if (input != nullptr) {
-      JsonObject inputObj = obj.createNestedObject("input");
-      for (JsonPair kv : *input) {
-        inputObj[kv.key()] = kv.value();
-      }
-    }
-
-    // 2.11 Action object: A links array (An array of Link objects linking
-    // to one or more representations of an Action resource, each with an
-    // implied default rel=action.)
-    JsonArray inline_links = obj.createNestedArray("links");
-    JsonObject inline_links_prop = inline_links.createNestedObject();
-    inline_links_prop["href"] = "/actions/" + id;
   }
 };
 
@@ -161,41 +131,13 @@ public:
   double multipleOf = -1;
 
   ThingItem(const char *id_, const char *description_, ThingDataType type_,
-            const char *atType_)
-      : id(id_), description(description_), type(type_), atType(atType_) {}
+            const char *atType_);
 
-  void setValue(ThingDataValue newValue) {
-    // Set the items value to a ThingDataValue instance
-    this->value = newValue;
-    this->hasChanged = true;
-  }
-
-  void setValueArray(ThingDataValue newValues[], int n) {
-    // Set the items values to an array of ThingDataValue instances
-    this->values = newValues;
-    this->hasChanged = true;
-    this->_isArray = true;
-    this->_arrayLength = n;
-  }
-
-  void setValue(unsigned int index, ThingDataValue newValue) {
-    // Set an element of the items values array to a ThingDataValue instance
-      this->values[index] = newValue;
-  }
-
-  void setValue(const char *s) {
-    // Set the items value to a string
-    *(this->getValue().string) = s;
-    this->hasChanged = true;
-  }
-
-  void setValue(unsigned int index, const char *s) {
-    // Set an element of the items values array to a string
-    if (this->isArray() && index < this->arrayLength()) {
-      *(this->values[index].string) = s;
-      this->hasChanged = true;
-    }
-  }
+  void setValue(ThingDataValue newValue);
+  void setValue(unsigned int index, ThingDataValue newValue);
+  void setValue(const char *s);
+  void setValue(unsigned int index, const char *s);
+  void setValueArray(ThingDataValue newValues[], int n);
 
   /**
    * Returns the property value if it has been changed via {@link setValue}
@@ -207,21 +149,13 @@ public:
     return v;
   }
 
-  ThingDataValue getValue() {
-    return this->value; 
-  }
+  ThingDataValue getValue() { return this->value; }
 
-  ThingDataValue *getValues() {
-    return this->values;
-  }
+  ThingDataValue *getValues() { return this->values; }
 
-  bool isArray() {
-    return this->_isArray;
-  }
+  bool isArray() { return this->_isArray; }
 
-  int arrayLength() {
-    return this->_arrayLength;
-  }
+  int arrayLength() { return this->_arrayLength; }
 
   void serialize(JsonObject rootObj, String deviceId, String resourceType) {
     JsonObject obj;
@@ -231,8 +165,7 @@ public:
       rootObj["minItems"] = this->arrayLength();
       rootObj["maxItems"] = this->arrayLength();
       obj = rootObj.createNestedObject("items");
-    }
-    else {
+    } else {
       obj = rootObj;
     }
 
@@ -305,7 +238,7 @@ public:
       JsonArray variantArray = variant.to<JsonArray>();
       ThingDataValue *valueArray = this->getValues();
 
-      for( unsigned int a = 0; a < this->arrayLength(); a++ ) {
+      for (unsigned int a = 0; a < this->arrayLength(); a++) {
         ThingDataValue dataValue = valueArray[a];
         switch (this->type) {
         case NO_STATE:
@@ -324,8 +257,7 @@ public:
           break;
         }
       }
-    }
-    else {
+    } else {
       switch (this->type) {
       case NO_STATE:
         break;
@@ -645,7 +577,7 @@ public:
         return;
       }
       // For each element in the property array
-      for( unsigned int a = 0; a < property->arrayLength(); a++ ) {
+      for (unsigned int a = 0; a < property->arrayLength(); a++) {
         switch (property->type) {
         case NO_STATE: {
           break;
