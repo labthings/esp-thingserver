@@ -71,79 +71,19 @@ public:
 
   ThingActionObject(const char *name_, DynamicJsonDocument *actionRequest_,
                     void (*start_fn_)(const JsonVariant &),
-                    void (*cancel_fn_)())
-      : start_fn(start_fn_), cancel_fn(cancel_fn_), name(name_),
-        actionRequest(actionRequest_),
-        timeRequested("1970-01-01T00:00:00+00:00"), status("created") {
-    generateId();
-    timeRequested = getTimeStampString();
-  }
+                    void (*cancel_fn_)());
 
 #ifndef WITHOUT_WS
-  void setNotifyFunction(std::function<void(ThingActionObject *)> notify_fn_) {
-    notify_fn = notify_fn_;
-  }
+  void setNotifyFunction(std::function<void(ThingActionObject *)> notify_fn_);
 #endif
 
-  void generateId() {
-    for (uint8_t i = 0; i < 16; ++i) {
-      char c = (char)random('0', 'g');
+  void generateId();
+  void serialize(JsonObject obj, String deviceId);
+  void setStatus(const char *s);
 
-      if (c > '9' && c < 'a') {
-        --i;
-        continue;
-      }
-
-      id += c;
-    }
-  }
-
-  void serialize(JsonObject obj, String deviceId) {
-    JsonObject actionRequestObj = actionRequest->as<JsonObject>();
-    obj["input"] = actionRequestObj;
-
-    obj["status"] = status;
-    obj["timeRequested"] = timeRequested;
-
-    if (timeCompleted != "") {
-      obj["timeCompleted"] = timeCompleted;
-    }
-
-    obj["id"] = id;
-    obj["title"] = name;
-
-    obj["href"] = "/actions/" + name + "/" + id;
-  }
-
-  void setStatus(const char *s) {
-    status = s;
-
-#ifndef WITHOUT_WS
-    if (notify_fn != nullptr) {
-      notify_fn(this);
-    }
-#endif
-  }
-
-  void start() {
-    setStatus("pending");
-
-    JsonObject actionRequestObj = actionRequest->as<JsonObject>();
-    start_fn(actionRequestObj);
-
-    finish();
-  }
-
-  void cancel() {
-    if (cancel_fn != nullptr) {
-      cancel_fn();
-    }
-  }
-
-  void finish() {
-    timeCompleted = getTimeStampString();
-    setStatus("completed");
-  }
+  void start();
+  void cancel();
+  void finish();
 };
 
 class ThingAction {
@@ -240,9 +180,7 @@ public:
 
   void setValue(unsigned int index, ThingDataValue newValue) {
     // Set an element of the items values array to a ThingDataValue instance
-    if (this->isArray() && index < this->arrayLength()) {
       this->values[index] = newValue;
-    }
   }
 
   void setValue(const char *s) {
@@ -289,15 +227,13 @@ public:
     JsonObject obj;
 
     if (this->isArray()) {
-      obj["type"] = "array";
+      rootObj["type"] = "array";
+      rootObj["minItems"] = this->arrayLength();
+      rootObj["maxItems"] = this->arrayLength();
       obj = rootObj.createNestedObject("items");
     }
     else {
       obj = rootObj;
-    }
-
-    if (this->isArray()) {
-      rootObj["type"] = "array";
     }
 
     if (readOnly) {
@@ -337,7 +273,6 @@ public:
       obj["unit"] = unit;
     }
 
-
     if (minimum < maximum) {
       obj["minimum"] = minimum;
     }
@@ -353,7 +288,7 @@ public:
     // 2.9 Property object: A links array (An array of Link objects linking
     // to one or more representations of a Property resource, each with an
     // implied default rel=property.)
-    JsonArray inline_links = obj.createNestedArray("links");
+    JsonArray inline_links = rootObj.createNestedArray("links");
     JsonObject inline_links_prop = inline_links.createNestedObject();
     inline_links_prop["href"] = "/" + resourceType + "/" + id;
   }
