@@ -58,8 +58,7 @@ void ThingActionObject::setStatus(const char *s) {
 }
 
 void ThingActionObject::start() {
-ThingActionObject:
-  setStatus("pending");
+  this->setStatus("pending");
 
   JsonObject actionRequestObj = actionRequest->as<JsonObject>();
   start_fn(actionRequestObj);
@@ -75,8 +74,7 @@ void ThingActionObject::cancel() {
 
 void ThingActionObject::finish() {
   timeCompleted = getTimeStampString();
-ThingActionObject:
-  setStatus("completed");
+  this->setStatus("completed");
 }
 
 ThingAction::ThingAction(const char *id_, ThingActionObject *(*generator_fn_)(
