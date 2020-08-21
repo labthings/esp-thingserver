@@ -110,9 +110,7 @@ public:
 
   void serialize(JsonObject obj, String deviceId, String resourceType);
 
-  ThingActionObject *create(DynamicJsonDocument *actionRequest) {
-    return generator_fn(actionRequest);
-  }
+  ThingActionObject *create(DynamicJsonDocument *actionRequest);
 };
 
 class ThingItem {
@@ -139,143 +137,16 @@ public:
   void setValue(unsigned int index, const char *s);
   void setValueArray(ThingDataValue newValues[], int n);
 
-  /**
-   * Returns the property value if it has been changed via {@link setValue}
-   * since the last call or returns a nullptr.
-   */
-  ThingDataValue *changedValueOrNull() {
-    ThingDataValue *v = this->hasChanged ? &this->value : nullptr;
-    this->hasChanged = false;
-    return v;
-  }
+  ThingDataValue *changedValueOrNull();
+  ThingDataValue getValue();
+  ThingDataValue *getValues();
 
-  ThingDataValue getValue() { return this->value; }
+  bool isArray();
+  int arrayLength();
 
-  ThingDataValue *getValues() { return this->values; }
-
-  bool isArray() { return this->_isArray; }
-
-  int arrayLength() { return this->_arrayLength; }
-
-  void serialize(JsonObject rootObj, String deviceId, String resourceType) {
-    JsonObject obj;
-
-    if (this->isArray()) {
-      rootObj["type"] = "array";
-      rootObj["minItems"] = this->arrayLength();
-      rootObj["maxItems"] = this->arrayLength();
-      obj = rootObj.createNestedObject("items");
-    } else {
-      obj = rootObj;
-    }
-
-    if (readOnly) {
-      rootObj["readOnly"] = true;
-    }
-
-    if (title != "") {
-      rootObj["title"] = title;
-    }
-
-    if (description != "") {
-      rootObj["description"] = description;
-    }
-
-    if (atType != nullptr) {
-      rootObj["@type"] = atType;
-    }
-
-    switch (type) {
-    case NO_STATE:
-      break;
-    case BOOLEAN:
-      obj["type"] = "boolean";
-      break;
-    case NUMBER:
-      obj["type"] = "number";
-      break;
-    case INTEGER:
-      obj["type"] = "integer";
-      break;
-    case STRING:
-      obj["type"] = "string";
-      break;
-    }
-
-    if (unit != "") {
-      obj["unit"] = unit;
-    }
-
-    if (minimum < maximum) {
-      obj["minimum"] = minimum;
-    }
-
-    if (maximum > minimum) {
-      obj["maximum"] = maximum;
-    }
-
-    if (multipleOf > 0) {
-      obj["multipleOf"] = multipleOf;
-    }
-
-    // 2.9 Property object: A links array (An array of Link objects linking
-    // to one or more representations of a Property resource, each with an
-    // implied default rel=property.)
-    JsonArray inline_links = rootObj.createNestedArray("links");
-    JsonObject inline_links_prop = inline_links.createNestedObject();
-    inline_links_prop["href"] = "/" + resourceType + "/" + id;
-  }
-
-  void serializeValueToObject(JsonObject prop) {
-    DynamicJsonDocument doc(SMALL_JSON_DOCUMENT_SIZE);
-    JsonVariant variant = doc.to<JsonVariant>();
-    this->serializeValueToVariant(variant);
-    prop[this->id] = variant;
-  }
-
-  void serializeValueToVariant(JsonVariant variant) {
-    if (this->isArray()) {
-      JsonArray variantArray = variant.to<JsonArray>();
-      ThingDataValue *valueArray = this->getValues();
-
-      for (unsigned int a = 0; a < this->arrayLength(); a++) {
-        ThingDataValue dataValue = valueArray[a];
-        switch (this->type) {
-        case NO_STATE:
-          break;
-        case BOOLEAN:
-          variantArray.add(dataValue.boolean);
-          break;
-        case NUMBER:
-          variantArray.add(dataValue.number);
-          break;
-        case INTEGER:
-          variantArray.add(dataValue.integer);
-          break;
-        case STRING:
-          variantArray.add(*dataValue.string);
-          break;
-        }
-      }
-    } else {
-      switch (this->type) {
-      case NO_STATE:
-        break;
-      case BOOLEAN:
-        variant.set(this->getValue().boolean);
-        break;
-      case NUMBER:
-        variant.set(this->getValue().number);
-        break;
-      case INTEGER:
-        variant.set(this->getValue().integer);
-        break;
-      case STRING:
-        variant.set(*this->getValue().string);
-        break;
-      }
-    }
-  }
+  void serialize(JsonObject rootObj, String deviceId, String resourceType);
+  void serializeValueToObject(JsonObject prop);
+  void serializeValueToVariant(JsonVariant variant);
 
 private:
   ThingDataValue value = {false};
@@ -294,30 +165,10 @@ public:
 
   ThingProperty(const char *id_, const char *description_, ThingDataType type_,
                 const char *atType_,
-                void (*callback_)(ThingPropertyValue) = nullptr)
-      : ThingItem(id_, description_, type_, atType_), callback(callback_) {}
+                void (*callback_)(ThingPropertyValue) = nullptr);
 
-  void serialize(JsonObject obj, String deviceId, String resourceType) {
-    ThingItem::serialize(obj, deviceId, resourceType);
-
-    const char **enumVal = propertyEnum;
-    bool hasEnum = propertyEnum != nullptr && *propertyEnum != nullptr;
-
-    if (hasEnum) {
-      enumVal = propertyEnum;
-      JsonArray propEnum = obj.createNestedArray("enum");
-      while (propertyEnum != nullptr && *enumVal != nullptr) {
-        propEnum.add(*enumVal);
-        enumVal++;
-      }
-    }
-  }
-
-  void changed(ThingPropertyValue newValue) {
-    if (callback != nullptr) {
-      callback(newValue);
-    }
-  }
+  void serialize(JsonObject obj, String deviceId, String resourceType);
+  void changed(ThingPropertyValue newValue);
 };
 
 #ifndef WITHOUT_WS
@@ -325,8 +176,7 @@ class EventSubscription {
 public:
   uint32_t id;
   EventSubscription *next;
-
-  EventSubscription(uint32_t id_) : id(id_) {}
+  EventSubscription(uint32_t id_);
 };
 
 class ThingEvent : public ThingItem {
@@ -335,47 +185,11 @@ private:
 
 public:
   ThingEvent(const char *id_, const char *description_, ThingDataType type_,
-             const char *atType_)
-      : ThingItem(id_, description_, type_, atType_) {}
+             const char *atType_);
 
-  void addSubscription(uint32_t id) {
-    EventSubscription *sub = new EventSubscription(id);
-    sub->next = subscriptions;
-    subscriptions = sub;
-  }
-
-  void removeSubscription(uint32_t id) {
-    EventSubscription *curr = subscriptions;
-    EventSubscription *prev = nullptr;
-    while (curr != nullptr) {
-      if (curr->id == id) {
-        if (prev == nullptr) {
-          subscriptions = curr->next;
-        } else {
-          prev->next = curr->next;
-        }
-
-        delete curr;
-        return;
-      }
-
-      prev = curr;
-      curr = curr->next;
-    }
-  }
-
-  bool isSubscribed(uint32_t id) {
-    EventSubscription *curr = subscriptions;
-    while (curr != nullptr) {
-      if (curr->id == id) {
-        return true;
-      }
-
-      curr = curr->next;
-    }
-
-    return false;
-  }
+  void addSubscription(uint32_t id);
+  void removeSubscription(uint32_t id);
+  bool isSubscribed(uint32_t id);
 };
 #else
 using ThingEvent = ThingItem;
@@ -390,37 +204,13 @@ public:
   ThingEventObject *next = nullptr;
 
   ThingEventObject(const char *name_, ThingDataType type_,
-                   ThingDataValue value_)
-      : name(name_), type(type_), value(value_),
-        timestamp("1970-01-01T00:00:00+00:00") {}
-
+                   ThingDataValue value_);
   ThingEventObject(const char *name_, ThingDataType type_,
-                   ThingDataValue value_, String timestamp_)
-      : name(name_), type(type_), value(value_), timestamp(timestamp_) {}
+                   ThingDataValue value_, String timestamp_);
 
-  ThingDataValue getValue() { return this->value; }
+  ThingDataValue getValue();
 
-  void serialize(JsonObject obj) {
-    JsonObject data = obj.createNestedObject(name);
-    switch (this->type) {
-    case NO_STATE:
-      break;
-    case BOOLEAN:
-      data["data"] = this->getValue().boolean;
-      break;
-    case NUMBER:
-      data["data"] = this->getValue().number;
-      break;
-    case INTEGER:
-      data["data"] = this->getValue().integer;
-      break;
-    case STRING:
-      data["data"] = *this->getValue().string;
-      break;
-    }
-
-    data["timestamp"] = timestamp;
-  }
+  void serialize(JsonObject obj);
 };
 
 class ThingDevice {
@@ -443,415 +233,50 @@ public:
   JsonArray contextArray;
   JsonObject nestedContextObj;
 
-  ThingDevice(const char *_id, const char *_title, const char **_type)
-      : id(_id), title(_title), type(_type),
-        contextDoc(SMALL_JSON_DOCUMENT_SIZE) {
-    contextArray = contextDoc.to<JsonArray>();
-    contextArray.add("https://www.w3.org/2019/wot/td/v1");
-    nestedContextObj = contextArray.createNestedObject();
-  }
-
-  ~ThingDevice() {
-#if !defined(WITHOUT_WS) && (defined(ESP8266) || defined(ESP32))
-    if (ws)
-      delete ws;
-#endif
-  }
+  ThingDevice(const char *_id, const char *_title, const char **_type);
+  ~ThingDevice();
 
 #ifndef WITHOUT_WS
-  void removeEventSubscriptions(uint32_t id) {
-    ThingEvent *event = firstEvent;
-    while (event != nullptr) {
-      event->removeSubscription(id);
-      event = (ThingEvent *)event->next;
-    }
-  }
-
-  void addEventSubscription(uint32_t id, String eventName) {
-    ThingEvent *event = findEvent(eventName.c_str());
-    if (!event) {
-      return;
-    }
-
-    event->addSubscription(id);
-  }
-
-  void sendActionStatus(ThingActionObject *action) {
-    DynamicJsonDocument message(LARGE_JSON_DOCUMENT_SIZE);
-    message["messageType"] = "actionStatus";
-    JsonObject prop = message.createNestedObject("data");
-    action->serialize(prop, id);
-    String jsonStr;
-    serializeJson(message, jsonStr);
-    // Inform all connected ws clients about action statuses
-    ((AsyncWebSocket *)ws)->textAll(jsonStr);
-  }
+  void removeEventSubscriptions(uint32_t id);
+  void addEventSubscription(uint32_t id, String eventName);
+  void sendActionStatus(ThingActionObject *action);
 #endif
 
   // Add a context member with a prefix
   // E.g. device.addContext("https://w3id.org/saref#", "saref");
-  void addContext(String url, String prefix) {
-    nestedContextObj[prefix] = url;
-  }
-
+  void addContext(String url, String prefix);
   // Add a context member without a prefix
   // E.g. device.addContext("https://w3id.org/saref#");
-  void addContext(String url) { contextArray.add(url); }
+  void addContext(String url);
 
-  ThingProperty *findProperty(const char *id) {
-    ThingProperty *p = this->firstProperty;
-    while (p) {
-      if (!strcmp(p->id.c_str(), id))
-        return p;
-      p = (ThingProperty *)p->next;
-    }
-    return nullptr;
-  }
+  ThingProperty *findProperty(const char *id);
+  void addProperty(ThingProperty *property);
 
-  void addProperty(ThingProperty *property) {
-    property->next = firstProperty;
-    firstProperty = property;
-  }
+  ThingAction *findAction(const char *id);
+  ThingActionObject *findActionObject(const char *id);
+  void addAction(ThingAction *action);
 
-  ThingAction *findAction(const char *id) {
-    ThingAction *a = this->firstAction;
-    while (a) {
-      if (!strcmp(a->id.c_str(), id))
-        return a;
-      a = (ThingAction *)a->next;
-    }
-    return nullptr;
-  }
+  ThingEvent *findEvent(const char *id);
+  void addEvent(ThingEvent *event);
 
-  ThingActionObject *findActionObject(const char *id) {
-    ThingActionObject *a = this->actionQueue;
-    while (a) {
-      if (!strcmp(a->id.c_str(), id))
-        return a;
-      a = a->next;
-    }
-    return nullptr;
-  }
-
-  void addAction(ThingAction *action) {
-    action->next = firstAction;
-    firstAction = action;
-  }
-
-  ThingEvent *findEvent(const char *id) {
-    ThingEvent *e = this->firstEvent;
-    while (e) {
-      if (!strcmp(e->id.c_str(), id))
-        return e;
-      e = (ThingEvent *)e->next;
-    }
-    return nullptr;
-  }
-
-  void addEvent(ThingEvent *event) {
-    event->next = firstEvent;
-    firstEvent = event;
-  }
-
-  void setProperty(const char *name, const JsonVariant &newValue) {
-    ThingProperty *property = findProperty(name);
-
-    // If the property doesn't exist, return immediately
-    if (property == nullptr) {
-      return;
-    }
-
-    // If the property is an array
-    if (property->isArray()) {
-      // If the property is an array but the input JSON isn't
-      if (!newValue.is<JsonArray>()) {
-        // Return immediately
-        return;
-      }
-
-      // Create a JSON array from the input variant
-      JsonArray variantArray = newValue.as<JsonArray>();
-      // If input and property arrays are different lengths
-      if (variantArray.size() != property->arrayLength()) {
-        // Return immediately
-        return;
-      }
-      // For each element in the property array
-      for (unsigned int a = 0; a < property->arrayLength(); a++) {
-        switch (property->type) {
-        case NO_STATE: {
-          break;
-        }
-        case BOOLEAN: {
-          ThingDataValue value;
-          value.boolean = variantArray[a].as<bool>();
-          property->setValue(a, value);
-          property->changed(value);
-          break;
-        }
-        case NUMBER: {
-          ThingDataValue value;
-          value.number = variantArray[a].as<double>();
-          property->setValue(a, value);
-          property->changed(value);
-          break;
-        }
-        case INTEGER: {
-          ThingDataValue value;
-          value.integer = variantArray[a].as<signed long long>();
-          property->setValue(a, value);
-          property->changed(value);
-          break;
-        }
-        case STRING:
-          property->setValue(a, variantArray[a].as<const char *>());
-          property->changed(property->getValue());
-          break;
-        }
-      }
-    }
-
-    // Is the property is a single value
-    else {
-      switch (property->type) {
-      case NO_STATE: {
-        break;
-      }
-      case BOOLEAN: {
-        ThingDataValue value;
-        value.boolean = newValue.as<bool>();
-        property->setValue(value);
-        property->changed(value);
-        break;
-      }
-      case NUMBER: {
-        ThingDataValue value;
-        value.number = newValue.as<double>();
-        property->setValue(value);
-        property->changed(value);
-        break;
-      }
-      case INTEGER: {
-        ThingDataValue value;
-        value.integer = newValue.as<signed long long>();
-        property->setValue(value);
-        property->changed(value);
-        break;
-      }
-      case STRING:
-        property->setValue(newValue.as<const char *>());
-        property->changed(property->getValue());
-        break;
-      }
-    }
-  }
+  void setProperty(const char *name, const JsonVariant &newValue);
 
   ThingActionObject *requestAction(const char *name,
-                                   DynamicJsonDocument *actionRequest) {
+                                   DynamicJsonDocument *actionRequest);
+  void removeAction(String id);
 
-    ThingAction *action = findAction(name);
-    if (action == nullptr) {
-      return nullptr;
-    }
+  void queueActionObject(ThingActionObject *obj);
+  void queueEventObject(ThingEventObject *obj);
 
-    ThingActionObject *obj = action->create(actionRequest);
-    if (obj == nullptr) {
-      return nullptr;
-    }
+  // Serialize Thing Description
+  void serialize(JsonObject descr, String ip, uint16_t port);
 
-    queueActionObject(obj);
-    return obj;
-  }
-
-  void removeAction(String id) {
-    ThingActionObject *curr = actionQueue;
-    ThingActionObject *prev = nullptr;
-    while (curr != nullptr) {
-      if (curr->id == id) {
-        if (prev == nullptr) {
-          actionQueue = curr->next;
-        } else {
-          prev->next = curr->next;
-        }
-
-        curr->cancel();
-        delete curr->actionRequest;
-        delete curr;
-        return;
-      }
-
-      prev = curr;
-      curr = curr->next;
-    }
-  }
-
-  void queueActionObject(ThingActionObject *obj) {
-    obj->next = actionQueue;
-    actionQueue = obj;
-  }
-
-  void queueEventObject(ThingEventObject *obj) {
-    obj->next = eventQueue;
-    eventQueue = obj;
-
-#ifndef WITHOUT_WS
-    ThingEvent *event = findEvent(obj->name.c_str());
-    if (!event) {
-      return;
-    }
-
-    // * Send events as defined in "4.7 event message"
-    DynamicJsonDocument message(SMALL_JSON_DOCUMENT_SIZE);
-    message["messageType"] = "event";
-    JsonObject data = message.createNestedObject("data");
-    obj->serialize(data);
-    String jsonStr;
-    serializeJson(message, jsonStr);
-
-    // Inform all subscribed ws clients about events
-    for (AsyncWebSocketClient *client :
-         ((AsyncWebSocket *)this->ws)->getClients()) {
-      uint32_t id = client->id();
-
-      if (event->isSubscribed(id)) {
-        ((AsyncWebSocket *)this->ws)->text(id, jsonStr);
-      }
-    }
-#endif
-  }
-
-  void serialize(JsonObject descr, String ip, uint16_t port) {
-    descr["id"] = this->id;
-    descr["title"] = this->title;
-    descr["@context"] = contextArray;
-
-    if (this->description != "") {
-      descr["description"] = this->description;
-    }
-    if (port != 80) {
-      char buffer[33];
-      itoa(port, buffer, 10);
-      descr["base"] = "http://" + ip + ":" + buffer + "/";
-    } else {
-      descr["base"] = "http://" + ip + "/";
-    }
-
-    JsonObject securityDefinitions =
-        descr.createNestedObject("securityDefinitions");
-    JsonObject nosecSc = securityDefinitions.createNestedObject("nosec_sc");
-    nosecSc["scheme"] = "nosec";
-    descr["security"] = "nosec_sc";
-
-    JsonArray typeJson = descr.createNestedArray("@type");
-    const char **type = this->type;
-    while ((*type) != nullptr) {
-      typeJson.add(*type);
-      type++;
-    }
-
-    JsonArray links = descr.createNestedArray("links");
-    {
-      JsonObject links_prop = links.createNestedObject();
-      links_prop["rel"] = "properties";
-      links_prop["href"] = "/properties";
-    }
-
-    {
-      JsonObject links_prop = links.createNestedObject();
-      links_prop["rel"] = "actions";
-      links_prop["href"] = "/actions";
-    }
-
-    {
-      JsonObject links_prop = links.createNestedObject();
-      links_prop["rel"] = "events";
-      links_prop["href"] = "/events";
-    }
-
-#ifndef WITHOUT_WS
-    {
-      JsonObject links_prop = links.createNestedObject();
-      links_prop["rel"] = "alternate";
-
-      if (port != 80) {
-        char buffer[33];
-        itoa(port, buffer, 10);
-        links_prop["href"] =
-            "ws://" + ip + ":" + buffer + "/things/" + this->id;
-      } else {
-        links_prop["href"] = "ws://" + ip + "/things/" + this->id;
-      }
-    }
-#endif
-
-    ThingProperty *property = this->firstProperty;
-    if (property != nullptr) {
-      JsonObject properties = descr.createNestedObject("properties");
-      while (property != nullptr) {
-        JsonObject obj = properties.createNestedObject(property->id);
-        property->serialize(obj, id, "properties");
-        property = (ThingProperty *)property->next;
-      }
-    }
-
-    ThingAction *action = this->firstAction;
-    if (action != nullptr) {
-      JsonObject actions = descr.createNestedObject("actions");
-      while (action != nullptr) {
-        JsonObject obj = actions.createNestedObject(action->id);
-        action->serialize(obj, id, "actions");
-        action = action->next;
-      }
-    }
-
-    ThingEvent *event = this->firstEvent;
-    if (event != nullptr) {
-      JsonObject events = descr.createNestedObject("events");
-      while (event != nullptr) {
-        JsonObject obj = events.createNestedObject(event->id);
-        event->serialize(obj, id, "events");
-        event = (ThingEvent *)event->next;
-      }
-    }
-  }
-
-  void serializeActionQueue(JsonArray array) {
-    ThingActionObject *curr = actionQueue;
-    while (curr != nullptr) {
-      JsonObject action = array.createNestedObject();
-      curr->serialize(action, id);
-      curr = curr->next;
-    }
-  }
-
-  void serializeActionQueue(JsonArray array, String name) {
-    ThingActionObject *curr = actionQueue;
-    while (curr != nullptr) {
-      if (curr->name == name) {
-        JsonObject action = array.createNestedObject();
-        curr->serialize(action, id);
-      }
-      curr = curr->next;
-    }
-  }
-
-  void serializeEventQueue(JsonArray array) {
-    ThingEventObject *curr = eventQueue;
-    while (curr != nullptr) {
-      JsonObject event = array.createNestedObject();
-      curr->serialize(event);
-      curr = curr->next;
-    }
-  }
-
-  void serializeEventQueue(JsonArray array, String name) {
-    ThingEventObject *curr = eventQueue;
-    while (curr != nullptr) {
-      if (curr->name == name) {
-        JsonObject event = array.createNestedObject();
-        curr->serialize(event);
-      }
-      curr = curr->next;
-    }
-  }
+  // Serialize full action queue
+  void serializeActionQueue(JsonArray array);
+  // Serialize action queue for a particular action name
+  void serializeActionQueue(JsonArray array, String name);
+  // Serialize full event queue
+  void serializeEventQueue(JsonArray array);
+  // Serialize event queue for a particular event name
+  void serializeEventQueue(JsonArray array, String name);
 };
