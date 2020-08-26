@@ -1,5 +1,6 @@
 #include <Arduino.h>
-#include <AM232X.h>
+#include "Adafruit_Sensor.h"
+#include "Adafruit_AM2320.h"
 
 // Make sure we use an async web server for the WiFi manager
 #define WM_ASYNC
@@ -8,7 +9,7 @@
 #include <Thing.h>
 #include <WebThingAdapter.h>
 
-AM232X AM2320;
+Adafruit_AM2320 am2320 = Adafruit_AM2320();
 WebThingAdapter *adapter;
 
 // Define basic Thing attributes
@@ -25,12 +26,10 @@ ThingPropertyValue humidityValue;
 
 void readAM232XData() {
   // Read latest AM2320 and write them to our Thing properties
-  if (AM2320.read() == AM232X_OK) {
-    temperatureValue.number = AM2320.getTemperature();
-    weatherTemp.setValue(temperatureValue);
-    humidityValue.number = AM2320.getHumidity();
-    weatherHum.setValue(humidityValue);
-  }
+  temperatureValue.number = am2320.readTemperature();
+  weatherTemp.setValue(temperatureValue);
+  humidityValue.number = am2320.readHumidity();
+  weatherHum.setValue(humidityValue);
 }
 
 void setup(void) {
@@ -63,7 +62,7 @@ void setup(void) {
     Serial.println(WiFi.localIP());
 
     // Start I2C
-    Wire.begin();
+    am2320.begin();
 
     // Add Thing properties
     weatherTemp.unit = "celsius";
