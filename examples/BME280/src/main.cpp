@@ -1,72 +1,30 @@
-/*
-  WiFi Web Server LED control via web of things (e.g., iot.mozilla.org gateway)
-  based on WiFi101.h example "Provisioning_WiFiWebServer.ino"
-
- A simple web server that lets you control an LED via the web.
- This sketch will print the IP address of your WiFi device (once connected)
- to the Serial monitor. From there, you can open that address in a web browser
- to turn on and off the onboard LED.
-
- You can also connect via the Things Gateway http-on-off-wifi-adapter.
-
- If the IP address of your shield is yourAddress:
- http://yourAddress/H turns the LED on
- http://yourAddress/L turns it off
-
- This example is written for a network using WPA encryption. For
- WEP or WPA, change the Wifi.begin() call accordingly.
-
- Circuit:
- * WiFi using Microchip (Atmel) WINC1500
- * LED attached to pin 1 (onboard LED) for SAMW25
- * LED attached to pin 6 for MKR1000
-
- created 25 Nov 2012
- by Tom Igoe
-
- updates: dh, kg 2018
- */
-
-#define LARGE_JSON_BUFFERS 1
-
 #include <Arduino.h>
-#define WM_ASYNC
-#include <AsyncWiFiManager.h>
-
-#include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
+#include <Wire.h>
+
+// Make sure we use an async web server for the WiFi manager
+#define WM_ASYNC
+#include <AsyncWiFiManager.h>
 
 #include <Thing.h>
 #include <WebThingAdapter.h>
 
-#ifndef PIN_STATE_HIGH
-#define PIN_STATE_HIGH HIGH
-#endif
-#ifndef PIN_STATE_LOW
-#define PIN_STATE_LOW LOW
-#endif
-
-#if defined(LED_BUILTIN)
-const int ledPin = LED_BUILTIN;
-#else
-const int ledPin = 13; // manually configure LED pin
-#endif
-
+Adafruit_BME280 bme;
 WebThingAdapter *adapter;
 
-const char *bme280Types[] = {"TemperatureSensor", nullptr};
+// Define basic Thing attributes
+const char *bme280Types[] = {"TemperatureSensor", "HumiditySensor", "BarometricPressureSensor", nullptr};
 ThingDevice weather("bme280", "BME280 Weather Sensor", bme280Types);
-ThingProperty weatherTemp("temperature", "", NUMBER, "TemperatureProperty");
-ThingProperty weatherHum("humidity", "", NUMBER, nullptr);
-ThingProperty weatherPres("pressure", "", NUMBER, nullptr);
 
-Adafruit_BME280 bme; // I2C
+ThingProperty weatherTemp("temperature", "", NUMBER, "TemperatureProperty");
+ThingProperty weatherHum("humidity", "", NUMBER, "HumidityProperty");
+ThingProperty weatherPres("pressure", "", NUMBER, "BarometricPressureProperty");
 
 void readBME280Data() {
   ThingPropertyValue value;
 
-  value.number = bme.readPressure();
+  value.number = bme.readPressure() / 100.0F;
   weatherPres.setValue(value);
   value.number = bme.readTemperature();
   weatherTemp.setValue(value);
@@ -75,31 +33,35 @@ void readBME280Data() {
 }
 
 void setup() {
-  pinMode(ledPin, OUTPUT);
-  digitalWrite(ledPin, HIGH);
   Serial.begin(115200);
+
+  // Create a WiFi station
   WiFi.mode(WIFI_STA);
 
+  // Start WiFi auto-connect routine
   AsyncWiFiManager awm;
-  // awm.resetSettings();
-  bool res;
   Serial.println("Running autoConnect");
-  res = awm.autoConnect("AutoConnectAP", "password"); // password protected ap
 
-  if (!res) {
+  // Hack for https://github.com/tzapu/WiFiManager/issues/979
+  awm.setEnableConfigPortal(false);
+  if (!awm.autoConnect()) {
+    Serial.println("Retry autoConnect");
+    WiFi.disconnect();
+    WiFi.mode(WIFI_OFF);
+    awm.setEnableConfigPortal(true);
+    awm.autoConnect();
+  }
+  // End of hack
+
+  if (!awm.autoConnect()) {
     Serial.println("Failed to connect");
     ESP.restart();
   } else {
-    digitalWrite(ledPin, HIGH); // active low led
-
     Serial.println("");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
 
-    // connected, make the LED stay on
-    digitalWrite(ledPin, PIN_STATE_HIGH);
-
-    // default settings
+    // Default BME settings
     unsigned status;
     status = bme.begin(BME280_ADDRESS_ALTERNATE);  
     // You can also pass in a Wire library object like &Wire2
@@ -114,15 +76,22 @@ void setup() {
         while (1) delay(10);
     }
 
+    // Add Thing properties
     weatherTemp.unit = "celsius";
     weather.addProperty(&weatherTemp);
+    weatherPres.unit = "hPa";
     weather.addProperty(&weatherPres);
+    weatherHum.unit = "percent";
     weather.addProperty(&weatherHum);
 
+    // Create our Thing adapter
     adapter = new WebThingAdapter(&weather, "weathersensor", WiFi.localIP());
+    // Start the server
     adapter->begin();
+    Serial.println("HTTP server started");
+    Serial.print("http://");
+    Serial.print(WiFi.localIP());
   }
-
 }
 
 void loop() {
