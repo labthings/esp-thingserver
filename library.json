@@ -15,8 +15,8 @@
   "platforms": "espressif8266,espressif32",
   "dependencies": {
     "ArduinoJson": "^6.15.0",
-    "ESP Async WebServer": "^1.2.0",
-    "NTPClient": "^3.1.0"
+    "NTPClient": "^3.1.0",
+    "ESP Async WebServer": "^1.2.0"
   },
   "export": {
     "include": [
