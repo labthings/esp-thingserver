@@ -30,10 +30,13 @@
 #define LARGE_JSON_BUFFERS 1
 
 #include <Arduino.h>
-#include <BME280.h>
-#include <BME280I2C.h>
-#include <SPI.h>
+#define WM_ASYNC
+#include <AsyncWiFiManager.h>
+
 #include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
+
 #include <Thing.h>
 #include <WebThingAdapter.h>
 
@@ -58,82 +61,68 @@ ThingProperty weatherTemp("temperature", "", NUMBER, "TemperatureProperty");
 ThingProperty weatherHum("humidity", "", NUMBER, nullptr);
 ThingProperty weatherPres("pressure", "", NUMBER, nullptr);
 
-BME280I2C::Settings
-    settings(BME280::OSR_X1, BME280::OSR_X1, BME280::OSR_X1,
-             BME280::Mode_Forced, BME280::StandbyTime_1000ms,
-             BME280::Filter_Off, BME280::SpiEnable_False,
-             (BME280I2C::I2CAddr)0x76 // I2C address. I2C specific.
-    );
-
-BME280I2C bme(settings);
+Adafruit_BME280 bme; // I2C
 
 void readBME280Data() {
-  float temp(NAN), hum(NAN), pres(NAN);
-  BME280::TempUnit tempUnit(BME280::TempUnit_Celsius);
-  BME280::PresUnit presUnit(BME280::PresUnit_Pa);
-  bme.read(pres, temp, hum, tempUnit, presUnit);
-
   ThingPropertyValue value;
-  value.number = pres;
+
+  value.number = bme.readPressure();
   weatherPres.setValue(value);
-  value.number = temp;
+  value.number = bme.readTemperature();
   weatherTemp.setValue(value);
-  value.number = hum;
+  value.number = bme.readHumidity();
   weatherHum.setValue(value);
 }
 
 void setup() {
-  // Initialize serial:
-  // Serial.begin(9600);
-
-  // check for the presence of the shield:
-  // Serial.print("Configuring WiFi shield/module...\n");
-  if (WiFi.status() == WL_NO_SHIELD) {
-    // Serial.println("WiFi shield not present");
-    // don't continue:
-    while (true)
-      ;
-  }
-
-  // configure the LED pin for output mode
   pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, HIGH);
+  Serial.begin(115200);
+  WiFi.mode(WIFI_STA);
 
-  Wire.begin();
-  while (!bme.begin()) {
-    // Serial.println("Could not find BME280I2C sensor!");
-    delay(1000);
-  }
+  AsyncWiFiManager awm;
+  // awm.resetSettings();
+  bool res;
+  Serial.println("Running autoConnect");
+  res = awm.autoConnect("AutoConnectAP", "password"); // password protected ap
 
-  // Serial.println("Starting in provisioning mode...");
-  // Start in provisioning mode:
-  //  1) This will try to connect to a previously associated access point.
-  //  2) If this fails, an access point named "wifi101-XXXX" will be created,
-  //  where XXXX
-  //     is the last 4 digits of the boards MAC address. Once you are connected
-  //     to the access point, you can configure an SSID and password by
-  //     visiting http://wifi101/
-  WiFi.beginProvision();
+  if (!res) {
+    Serial.println("Failed to connect");
+    ESP.restart();
+  } else {
+    digitalWrite(ledPin, HIGH); // active low led
 
-  while (WiFi.status() != WL_CONNECTED) {
-    // wait while not connected
+    Serial.println("");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
 
-    // blink the led to show an unconnected status
+    // connected, make the LED stay on
     digitalWrite(ledPin, PIN_STATE_HIGH);
-    delay(500);
-    digitalWrite(ledPin, PIN_STATE_LOW);
-    delay(500);
+
+    // default settings
+    unsigned status;
+    status = bme.begin(BME280_ADDRESS_ALTERNATE);  
+    // You can also pass in a Wire library object like &Wire2
+    // status = bme.begin(0x76, &Wire2)
+    if (!status) {
+        Serial.println("Could not find a valid BME280 sensor, check wiring, address, sensor ID!");
+        Serial.print("SensorID was: 0x"); Serial.println(bme.sensorID(),16);
+        Serial.print("        ID of 0xFF probably means a bad address, a BMP 180 or BMP 085\n");
+        Serial.print("   ID of 0x56-0x58 represents a BMP 280,\n");
+        Serial.print("        ID of 0x60 represents a BME 280.\n");
+        Serial.print("        ID of 0x61 represents a BME 680.\n");
+        while (1) delay(10);
+    }
+
+    weatherTemp.unit = "celsius";
+    weather.addProperty(&weatherTemp);
+    weather.addProperty(&weatherPres);
+    weather.addProperty(&weatherHum);
+
+    adapter = new WebThingAdapter(&weather, "weathersensor", WiFi.localIP());
+    adapter->begin();
   }
 
-  // connected, make the LED stay on
-  digitalWrite(ledPin, PIN_STATE_HIGH);
-
-  weatherTemp.unit = "celsius";
-  weather.addProperty(&weatherTemp);
-  weather.addProperty(&weatherPres);
-  weather.addProperty(&weatherHum);
-
-  adapter = new WebThingAdapter(&weather, "weathersensor", WiFi.localIP());
-  adapter->begin();
 }
 
 void loop() {
