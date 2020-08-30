@@ -15,6 +15,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Lint source
       uses: DoozyX/clang-format-lint-action@v0.5
+      continue-on-error: true
       with:
         source: '.'
         extensions: 'h,cpp,ino'
