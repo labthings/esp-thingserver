@@ -20,8 +20,9 @@
   },
   "export": {
     "include": [
-      "*.cpp",
-      "*.h"
+      "src/*.cpp",
+      "src/*.h",
+      "examples/*"
     ]
   },
   "examples": [
