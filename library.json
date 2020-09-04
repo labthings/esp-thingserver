@@ -2,7 +2,7 @@
   "name": "esp-thingserver",
   "description": "A library for creating Lab Things. Runs on ESP8266 and ESP32",
   "keywords": "Communication",
-  "version": "0.11.5",
+  "version": "0.2.0",
   "authors": {
     "name": "Joel Collins",
     "email": "joel@jtcollins.net"
