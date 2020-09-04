@@ -25,6 +25,20 @@
     ]
   },
   "examples": [
-    "examples/*/src/*.cpp"
+    {
+      "name": "BME280",
+      "base": "examples/BME280/src",
+      "files": ["main.cpp"]
+    },
+    {
+      "name": "LED",
+      "base": "examples/LED/src",
+      "files": ["main.cpp"]
+    },
+    {
+      "name": "NeoPixel",
+      "base": "examples/RGBArrayNeoPixel/src",
+      "files": ["main.cpp"]
+    }
   ]
 }
