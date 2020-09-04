@@ -157,3 +157,7 @@ void loop(void) {
     #include <Thing.h>
     #include <WebThingAdapter.h>
     ```
+    
+## Acknowledgements
+
+ESP Thing Server was originally based on the [Mozilla IoT WebThing-Arduino library](https://github.com/mozilla-iot/webthing-arduino).
