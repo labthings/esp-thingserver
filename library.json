@@ -1,5 +1,5 @@
 {
-  "name": "esp-labthings",
+  "name": "esp-thingserver",
   "description": "A library for creating Lab Things. Runs on ESP8266 and ESP32",
   "keywords": "Communication",
   "version": "0.11.5",
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/labthings/esp-labthings"
+    "url": "https://github.com/labthings/esp-thingserver"
   },
   "license": "MPL-2.0",
   "platforms": "espressif8266,espressif32",

@@ -22,7 +22,7 @@ RUN echo "#log: Configuring locales" \
   && dpkg-reconfigure locales \
   && sync
 
-ENV project esp-labthings
+ENV project esp-thingserver
 
 RUN echo "#log: ${project}: Setup system" \
   && set -x \
