@@ -293,7 +293,7 @@ void WebThingAdapter::handleThing(AsyncWebServerRequest *request,
   AsyncResponseStream *response =
       request->beginResponseStream("application/json");
 
-  DynamicJsonDocument buf(LARGE_JSON_DOCUMENT_SIZE);
+  DynamicJsonDocument buf(10 * LARGE_JSON_DOCUMENT_SIZE);
   JsonObject descr = buf.to<JsonObject>();
   device->serialize(descr, ip, port);
 
